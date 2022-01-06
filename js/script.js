@@ -1,9 +1,9 @@
 var context;
 var screenWidth=800;
 var screenHeight=600;
-var mapWidth=3000;
-var mapHeight=2000;
-var quantityMeteor=100;
+var mapWidth=1600;
+var mapHeight=1600;
+var quantityMeteor=150;
 var quantityBarrel=20;
 var countLoadImage=0;
 var nameImageArr=['spaceship','meteor',"barrel"];
@@ -22,14 +22,15 @@ var camera={
     
 }
 var ship={
-    x:screenWidth/2,
-    y:screenHeight/2,
+    x:mapWidth/2,
+    y:mapHeight/2,
     width:21,
     height:30,
     angle:90,
     speed:0,
 }
 var meteorType={
+    id:"meteor",
     being:false,
     x:0,
     y:0,
@@ -37,11 +38,20 @@ var meteorType={
     height:30,
 }
 var barrelType={
+    id:"barrel",
     being:false,
     x:0,
     y:0,
     width:26,
     height:30,
+}
+noMoveObjArr=[];
+closureMap={
+    up:[],
+    down:[],
+    right:[],
+    left:[],
+    
 }
 meteorArr=[];
 barrelArr=[];
@@ -100,6 +110,45 @@ function create ()// функция создание обьектов неоюх
     initKeyboardAndMouse(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown' ]);
     initMeteors();
     initBarrel();
+    
+    for (let i=0;i<meteorArr.length;i++)
+    {
+        let obj=clone(meteorArr[i]);
+        noMoveObjArr.push(obj)
+    }
+     for (let i=0;i<barrelArr.length;i++)
+    {
+        let obj=clone(barrelArr[i]);
+        noMoveObjArr.push(obj)
+    }
+    let obj;
+    for (let i=0;i<noMoveObjArr.length;i++)
+    {
+        if (noMoveObjArr[i].y<map.y+screenHeight)
+        {
+            obj=clone(noMoveObjArr[i]);
+            closureMap.up.push(obj);
+        }
+        if (noMoveObjArr[i].y>map.y+map.height-screenHeight)
+        {
+            obj=clone(noMoveObjArr[i]);
+            obj.y=obj.y-map.height+screenHeight;
+            closureMap.down.push(obj);
+        }
+        if (noMoveObjArr[i].x<map.x+screenWidth)
+        {
+            obj=clone(noMoveObjArr[i]);
+            closureMap.left.push(obj);
+        }
+        if (noMoveObjArr[i].x>map.x+map.width-screenWidth)
+        {
+            obj=clone(noMoveObjArr[i]);
+            obj.x=obj.x-map.width+screenWidth;
+            closureMap.right.push(obj);
+        }
+   
+    }
+    console.log(closureMap);
 }
 function drawAll()
 {
@@ -117,6 +166,30 @@ function drawAll()
         drawSprite(context,imageArr.get("barrel"),
                 barrelArr[i].x,barrelArr[i].y,camera,1) 
     }     
+    //рисуем обьекты для замыкания
+    for (let i=0;i<closureMap.down.length;i++)
+    {
+       
+        drawSprite(context,imageArr.get(closureMap.down[i].id),
+            closureMap.down[i].x,-screenHeight+closureMap.down[i].y,camera,1);
+        
+    }
+    for (let i=0;i<closureMap.up.length;i++)
+    {
+        drawSprite(context,imageArr.get(closureMap.up[i].id),
+            closureMap.up[i].x,closureMap.up[i].y+map.height,camera,1);
+    }
+    for (let i=0;i<closureMap.right.length;i++)
+    {
+        drawSprite(context,imageArr.get(closureMap.right[i].id),
+           -screenWidth+closureMap.right[i].x,closureMap.right[i].y,camera,1);
+    }
+    for (let i=0;i<closureMap.left.length;i++)
+    {
+        drawSprite(context,imageArr.get(closureMap.left[i].id),
+            closureMap.left[i].x+map.width,closureMap.left[i].y,camera,1); 
+    }
+        
 
 }
 function drawSprite(context,image,x,y,camera,scale)// функция вывода спрайта на экран
@@ -130,10 +203,6 @@ function drawSprite(context,image,x,y,camera,scale)// функция вывод�
 function drawTurnSprite(context,image,x,y,angle,x1,y1,camera,scale)// функция вывода повернутого спрайта на экран
 {
     if(!context || !image) return;
-//    context.save();
-//    context.scale(scale,scale);
-//    context.drawImage(image,x-camera.x,y-camera.y);
-//    context.restore();
     context.save();
     context.translate((x+x1-camera.x)*scale,
                         (y+y1-camera.y)*scale);
@@ -144,33 +213,42 @@ function drawTurnSprite(context,image,x,y,angle,x1,y1,camera,scale)// функц
 }
 function gameLoop()
 {
+    let speedRotation=2.5;
+    let acceleration=0.05;
+    let maxSpeed=10;
     if (checkPressKey( "ArrowRight"))
     {
-        ship.angle+=2;
+        ship.angle+=speedRotation;
         console.log(123);
     }
     if (checkPressKey( "ArrowLeft"))
     {
-        ship.angle-=2;
-       // alert(5415);
+        ship.angle-=speedRotation;
     }
+    
     if (checkPressKey( "ArrowUp"))
     {
-        //ship.speed+=0.2;
-        if (ship.speed<10)ship.speed+=0.2;else ship.speed=10;
-       // alert(5415);
-    }
-    if (checkPressKey( "ArrowDown"))
+        if (ship.speed<10)ship.speed+=acceleration;else ship.speed=maxSpeed;    
+    } 
+    else  if (checkPressKey( "ArrowDown"))
     {
-        if (ship.speed>0)ship.speed-=0.2;else ship.speed=0;
+        if (ship.speed>0)ship.speed-=acceleration;else ship.speed=0;
        // alert(5415);
+    }else 
+    {
+        //if (ship.speed>0) ship.speed-=0.04; else ship.speed=0;
     }
-    if (ship.speed>0) ship.speed-=0.05; else ship.speed=0;
-    camera.y-=Math.sin(pi*(ship.angle ) / 180)*ship.speed;
-    camera.x-=Math.cos(pi*(ship.angle ) / 180)*ship.speed;
-   // ship.angle++;
-//     if ( num==numPanzer &&( checkPressKey("KeyA")||checkPressKey("KeyS")||
-//            checkPressKey("KeyD")||checkPressKey("KeyW")))
+    ship.y-=Math.sin(pi*(ship.angle ) / 180)*ship.speed;
+    ship.x-=Math.cos(pi*(ship.angle ) / 180)*ship.speed;
+    //условия для замыкания
+    if (ship.y<map.y) ship.y=map.height;
+    if (ship.y>map.height) ship.y=map.y;
+    if (ship.x<map.x) ship.x=map.width;
+    if (ship.x>map.width) ship.x=map.x;
+    
+    camera.x=ship.x-screenWidth/2;
+    camera.y=ship.y-screenHeight/2;
+
 }
 function initMeteors()
 {
