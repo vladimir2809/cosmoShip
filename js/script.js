@@ -1,12 +1,12 @@
 var context;
 var screenWidth=800;
 var screenHeight=600;
-var mapWidth=1600;
-var mapHeight=1600;
+var mapWidth=2400;
+var mapHeight=2400;
 var quantityMeteor=150;
 var quantityBarrel=20;
 var countLoadImage=0;
-var nameImageArr=['spaceship','meteor',"barrel"];
+var nameImageArr=['spaceship','meteor',"barrel","background"];
 var imageArr=new Map();// массив картинок
 map ={
     x:0,
@@ -90,6 +90,7 @@ window.addEventListener('load', function () {
     
    // audio.play("shot");
     setInterval(drawAll,16);
+  //  setInterval(drawBackground,16);
     setInterval(gameLoop,16);
     //setTimeout(playSoundTrack,2000);
     
@@ -150,10 +151,28 @@ function create ()// функция создание обьектов неоюх
     }
     console.log(closureMap);
 }
+function drawBackground()
+{
+    context.fillStyle='rgb(0,0,0)';
+    context.fillRect(0,0,camera.width,camera.height);// очистка экрана
+
+    
+    for (let i=0;i<3000;i++)
+    {  
+//        let r=randomInteger(0,255);
+//        let g=randomInteger(0,255);
+//        let b=randomInteger(0,255);
+//        context.fillStyle='rgb('+r+","+g+", "+b+")";
+        context.fillStyle="#FFFFFF";
+        context.fillRect(randomInteger(0,screenWidth),
+                    randomInteger(0,screenHeight), 1, 1);
+    }
+}
 function drawAll()
 {
-    context.fillStyle='rgb(210,210,210)';
-    context.fillRect(0,0,camera.width,camera.height);// очистка экрана
+    context.fillStyle='rgb(210,210,210,1)';
+    //context.clearRect(0,0,camera.width,camera.height);// очистка экрана
+    context.drawImage(imageArr.get("background"),1,1);
     drawTurnSprite(context,imageArr.get("spaceship"),
             screenWidth/2,screenHeight/2,ship.angle,15,10,{x:1,y:1},1);
     for (let i=0;i<meteorArr.length;i++)
@@ -214,7 +233,7 @@ function drawTurnSprite(context,image,x,y,angle,x1,y1,camera,scale)// функц
 function gameLoop()
 {
     let speedRotation=2.5;
-    let acceleration=0.05;
+    let acceleration=0.025;
     let maxSpeed=10;
     if (checkPressKey( "ArrowRight"))
     {
