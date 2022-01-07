@@ -4,11 +4,13 @@ var screenHeight=600;
 var mapWidth=2800;
 var mapHeight=2800;
 var quantityMeteor=150;
-var quantityBarrel=20;
+var quantityBarrel=50;
+var quantityAstronaut=20;
+var rescuedAstronaut=0;
 var countLoadImage=0;
 var energy=100;
 var maxEnergy=energy;
-var nameImageArr=['spaceship','meteor',"barrel","background"];
+var nameImageArr=['spaceship','meteor',"barrel","background",'astronaut'];
 var imageArr=new Map();// массив картинок
 map ={
     x:0,
@@ -39,6 +41,14 @@ var meteorType={
     width:26,
     height:30,
 }
+var astronautType={
+    id:"astronaut",
+    being:false,
+    x:0,
+    y:0,
+    width:50,
+    height:80, 
+};
 var barrelType={
     id:"barrel",
     being:false,
@@ -57,6 +67,7 @@ closureMap={
 }
 meteorArr=[];
 barrelArr=[];
+astronautArr=[];
 function loadImageArr()// загрузить массив изображений
 {
     // заполняем массив изображений именами
@@ -103,6 +114,59 @@ function preload()// функция предзагрузки
     srand(timeNow);
     loadImageArr();
 }
+function addInClosureMap(arr)
+{
+    let obj;
+    for (let i=0;i<arr.length;i++)
+    if (arr[i].being==true)
+    {
+        if (arr[i].y<map.y+screenHeight)
+        {
+            obj=clone(arr[i]);
+            closureMap.up.push(obj);
+        }
+        if (arr[i].y>map.y+map.height-screenHeight)
+        {
+            obj=clone(arr[i]);
+            obj.y=obj.y-map.height+screenHeight;
+            closureMap.down.push(obj);
+        }
+        if (arr[i].x<map.x+screenWidth)
+        {
+            obj=clone(arr[i]);
+            closureMap.left.push(obj);
+        }
+        if (arr[i].x>map.x+map.width-screenWidth)
+        {
+            obj=clone(arr[i]);
+            obj.x=obj.x-map.width+screenWidth;
+            closureMap.right.push(obj);
+        }
+   
+    }
+}
+function updateClosureMap()
+{
+    while(closureMap.left.length>0)
+    {
+        closureMap.left.splice(0,1);
+    }
+    while(closureMap.right.length>0)
+    {
+        closureMap.right.splice(0,1);
+    }
+    while(closureMap.up.length>0)
+    {
+        closureMap.up.splice(0,1);
+    }
+    while(closureMap.down.length>0)
+    {
+        closureMap.down.splice(0,1);
+    }
+    addInClosureMap(barrelArr);   
+    addInClosureMap(meteorArr); 
+    addInClosureMap(astronautArr);
+}
 function create ()// функция создание обьектов неоюходимых для игры
 {
     var canvas = document.getElementById("canvas");
@@ -113,8 +177,10 @@ function create ()// функция создание обьектов неоюх
     camera.x=mapWidth/2-camera.width/2;
     camera.y=mapHeight/2-camera.height/2;
     initKeyboardAndMouse(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown' ]);
-    initMeteors();
-    initBarrel();
+//    initMeteors();
+//    initBarrel();
+    initNoMoveObjAll();
+    updateClosureMap();
     
 //    
 //    for (let i=0;i<meteorArr.length;i++)
@@ -128,33 +194,6 @@ function create ()// функция создание обьектов неоюх
 //        noMoveObjArr.push(obj)
 //    }
 //    
-    let obj;
-    for (let i=0;i<noMoveObjArr.length;i++)
-    {
-        if (noMoveObjArr[i].y<map.y+screenHeight)
-        {
-            obj=clone(noMoveObjArr[i]);
-            closureMap.up.push(obj);
-        }
-        if (noMoveObjArr[i].y>map.y+map.height-screenHeight)
-        {
-            obj=clone(noMoveObjArr[i]);
-            obj.y=obj.y-map.height+screenHeight;
-            closureMap.down.push(obj);
-        }
-        if (noMoveObjArr[i].x<map.x+screenWidth)
-        {
-            obj=clone(noMoveObjArr[i]);
-            closureMap.left.push(obj);
-        }
-        if (noMoveObjArr[i].x>map.x+map.width-screenWidth)
-        {
-            obj=clone(noMoveObjArr[i]);
-            obj.x=obj.x-map.width+screenWidth;
-            closureMap.right.push(obj);
-        }
-   
-    }
     //console.log(closureMap);
 }
 function drawBackground()
@@ -196,8 +235,20 @@ function drawAll()
                     barrelArr[i].x,barrelArr[i].y,camera,1) 
         }
     }     
+    for (let i=0;i<astronautArr.length;i++)
+    {
+        if (astronautArr[i].being==true)
+        {
+            drawSprite(context,imageArr.get("astronaut"),
+                    astronautArr[i].x,astronautArr[i].y,camera,1) 
+        }
+    }  
     drawClosureObj();
     drawEnergy();
+    context.font = "28px Arial";
+    context.fillStyle="#999999";
+    context.fillText("rescued astronaut: "+rescuedAstronaut+"/"+quantityAstronaut,
+                       250,35);
     drawTurnSprite(context,imageArr.get("spaceship"),
             screenWidth/2,screenHeight/2,ship.angle,15,10,{x:1,y:1},1); 
 
@@ -263,6 +314,8 @@ function gameLoop()
     let speedRotation=2.5;
     let acceleration=0.025;
     let maxSpeed=10;
+    let decEnergy=0.05;
+    let decEnergyAcelerate=0.2;
     if (checkPressKey( "ArrowRight"))
     {
         ship.angle+=speedRotation;
@@ -278,7 +331,7 @@ function gameLoop()
         if (ship.speed<10)
         {
             ship.speed+=acceleration;
-            energy-=0.2;
+            energy-=decEnergyAcelerate;
         }
         else
         {
@@ -290,7 +343,7 @@ function gameLoop()
         if (ship.speed>0)
         {
             ship.speed-=acceleration;
-            energy-=0.2;
+            energy-=decEnergyAcelerate;
         }
         else
         {
@@ -321,6 +374,25 @@ function gameLoop()
                 energy=maxEnergy;
             }
             barrelArr[i].being=false;
+            updateClosureMap();
+            
+            
+        }
+    }
+    for (let i=0;i<astronautArr.length;i++)
+    {
+        if (astronautArr[i].being==true)
+        if (ship.x+ship.width>astronautArr[i].x && 
+            ship.x<astronautArr[i].x+astronautArr[i].width &&
+            ship.y+ship.height>astronautArr[i].y && 
+            ship.y<astronautArr[i].y+astronautArr[i].height 
+           )
+        {
+            astronautArr[i].being=false;
+            rescuedAstronaut++;
+            updateClosureMap();
+            
+            
         }
     }
     //условия для замыкания
@@ -328,11 +400,35 @@ function gameLoop()
     if (ship.y>map.height) ship.y=map.y;
     if (ship.x<map.x) ship.x=map.width;
     if (ship.x>map.width) ship.x=map.x;
-    if (energy>0) energy-=0.05;// else energy=maxEnergy
+    if (energy>0&& ship.speed>0) energy-=decEnergy;// else energy=maxEnergy
     if (energy<=0) alert('У вас закончилась энергия, игра окончена.');
     camera.x=ship.x-screenWidth/2;
     camera.y=ship.y-screenHeight/2;
 
+}
+function initObjArr(quantity,type)
+{
+    let objArr=[];
+    for (let i=0;i<quantity;i++)
+    {
+        let objOne=clone(type);
+        //meteorOne.x=randomInteger(1,mapWidth);
+        //meteorOne.y=randomInteger(1,mapHeight);
+        //let meteorOne=clone(meteorType);
+        let XY=calcNoColiisionXY(objOne);
+        objOne.x=XY.x;
+        objOne.y=XY.y;
+        objOne.being=true;
+        objArr.push(objOne);
+        noMoveObjArr.push(objOne);
+    }
+    return objArr;
+}
+function initNoMoveObjAll()
+{
+   barrelArr=initObjArr(quantityBarrel,barrelType);
+   meteorArr=initObjArr(quantityMeteor,meteorType);
+   astronautArr=initObjArr(quantityAstronaut,astronautType);   
 }
 function initMeteors()
 {
